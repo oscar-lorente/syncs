@@ -83,6 +83,43 @@ get(){
     date +"%T"; echo
 }
 
+setloop(){
+	#Multiplerepo WARN: Replicate modifications in excluded dirs (find . | egrep "*excluded*" --color)
+
+    create_excludes #Create array of excludes from blacklist
+    
+	#Trigger when an event occurs
+	while true; do
+		
+		#LOG
+		printf `cat /etc/hostname` >> ~/syncs/gpi/$folname.txt
+		trap "printf ' Exit with error\n' >> ~/syncs/gpi/$folname.txt" ERR #Log ERROR exits
+	    trap "printf ' Exit by USER\n' >> ~/syncs/gpi/$folname.txt; trap - ERR" INT #Log USER exits (and reset ERR)
+		
+		#Set workspace/folname
+		echo -e "\n\n---------------------- Set gpi workspace/$folname ----------------------\n"
+		rsync -rltgoDv --delete -e 'ssh -p 2225' --progress ${excludes[*]} \
+		$localdir/$folname/ icaminal@calcula.tsc.upc.edu:~/workspace/$folname/
+		
+		#LOG
+		echo ' --> GPI    '`date` >> ~/syncs/gpi/$folname.txt
+		
+		#Upload logs to remote
+	    trap - INT ERR #reset signal handling to the default
+	    rsync -rltgoDq --delete -e 'ssh -p 2225' ~/syncs/gpi/ icaminal@calcula.tsc.upc.edu:~/syncs/
+	    if (($? == 0)); then echo -e "syncs uploaded"; fi
+		
+		date +"%T"; echo
+
+		sleep 0.2
+		if inotifywait -r -e create,delete,modify,move $localdir/$folname/; then 
+			continue
+		else
+			exit 1
+		fi
+	done
+}
+
 create_excludes(){
     excludes=()
     for f in ${blacklist[@]}
