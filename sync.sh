@@ -1,4 +1,5 @@
 #!/bin/bash
+#WARN: Replicate modifications in excluded dirs (find . | egrep "*excluded*" --color)
 
 #Exit if error
 set -e
@@ -25,11 +26,21 @@ main(){
             "phd")
                 folname="phd"
                 localdir="$HOME/github"
+                remotedir="~/workspace"
                 ;;
             "mth")
                 blacklist+=("world3d-ros/") #custom exclude
                 folname="mth"
                 localdir="$HOME/github"
+                remotedir="~/workspace"
+                ;;
+            "imp")
+                blacklist+=("world3d-ros/") #custom exclude
+                folname="important"
+                localdir="$HOME/research"
+                remotedir="~"
+                if [[ ! $actARG =~ g.* ]]; then 
+                    echo "ERROR: Folder \"$folname\" can only be get!"; exit -1; fi
                 ;;
             *)
                 echo "ERROR: unknown folder name: \"$folARG\""
@@ -57,8 +68,7 @@ main(){
 }
 
 get(){
-    #Multiplerepo WARN: Replicate modifications in excluded dirs (find . | egrep "*excluded*" --color)
-    
+
     create_excludes #Create array of excludes from blacklist
 
     #LOG
@@ -66,10 +76,10 @@ get(){
     trap "printf ' Exit with error\n' >> ~/syncs/gpi/$folname.txt" ERR #Log ERROR exits
     trap "printf ' Exit by USER\n' >> ~/syncs/gpi/$folname.txt; trap - ERR" INT #Log USER exits (and reset ERR)
 
-    #get workspace/folname
+    #Get workspace/folname
     echo -e "\n\n************* Geting gpi workspace/$folname ****************\n"
     rsync -rltgoDv --delete -e 'ssh -p 2225' --progress ${excludes[*]} \
-    icaminal@calcula.tsc.upc.edu:~/workspace/$folname/ $localdir/$folname/
+    icaminal@calcula.tsc.upc.edu:$remotedir/$folname/ $localdir/$folname/
     echo -e "OK! - workspace/$folname\n"
 
     #LOG
@@ -84,13 +94,11 @@ get(){
 }
 
 setloop(){
-	#Multiplerepo WARN: Replicate modifications in excluded dirs (find . | egrep "*excluded*" --color)
 
     create_excludes #Create array of excludes from blacklist
     
-	#Trigger when an event occurs
 	while true; do
-		
+        
 		#LOG
 		printf `cat /etc/hostname` >> ~/syncs/gpi/$folname.txt
 		trap "printf ' Exit with error\n' >> ~/syncs/gpi/$folname.txt" ERR #Log ERROR exits
@@ -99,7 +107,7 @@ setloop(){
 		#Set workspace/folname
 		echo -e "\n\n---------------------- Set gpi workspace/$folname ----------------------\n"
 		rsync -rltgoDv --delete -e 'ssh -p 2225' --progress ${excludes[*]} \
-		$localdir/$folname/ icaminal@calcula.tsc.upc.edu:~/workspace/$folname/
+		$localdir/$folname/ icaminal@calcula.tsc.upc.edu:$remotedir/$folname/
 		
 		#LOG
 		echo ' --> GPI    '`date` >> ~/syncs/gpi/$folname.txt
@@ -112,6 +120,7 @@ setloop(){
 		date +"%T"; echo
 
 		sleep 0.2
+        #Trigger when an event occurs
 		if inotifywait -r -e create,delete,modify,move $localdir/$folname/; then 
 			continue
 		else
