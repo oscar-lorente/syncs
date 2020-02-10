@@ -16,13 +16,16 @@ blacklist=(
 ".fuse*"
 ".nfs*")
 
+#File size limit
+maxsize="1G"
+
 main(){
     if [ "$1" != "" ] && [ "$2" != "" ]; then
-        actARG=`echo $1 | awk -F= '{print tolower($1)}'`
-        folARG=`echo $2 | awk -F= '{print tolower($1)}'`
+        actionARG=`echo $1 | awk -F= '{print tolower($1)}'`
+        folderARG=`echo $2 | awk -F= '{print tolower($1)}'`
         
         #Folder
-        case $folARG in
+        case $folderARG in
             "phd")
                 folname="phd"
                 localdir="$HOME/github"
@@ -35,21 +38,28 @@ main(){
                 remotedir="~/workspace"
                 ;;
             "imp")
-                blacklist+=("world3d-ros/") #custom exclude
                 folname="important"
                 localdir="$HOME/research"
                 remotedir="~"
-                if [[ ! $actARG =~ g.* ]]; then 
+                if [[ ! $actionARG =~ g.* ]]; then 
+                    echo "ERROR: Folder \"$folname\" can only be get!"; exit -1; fi
+                ;;
+            "out")
+                folname="outputs"
+                localdir="$HOME/research"
+                remotedir="~"
+                maxsize="1M"
+                if [[ ! $actionARG =~ g.* ]]; then 
                     echo "ERROR: Folder \"$folname\" can only be get!"; exit -1; fi
                 ;;
             *)
-                echo "ERROR: unknown folder name: \"$folARG\""
+                echo "ERROR: unknown folder name: \"$folderARG\""
                 exit 1
                 ;;
         esac
         
         #Action
-        case $actARG in
+        case $actionARG in
             "get" | "g")
                 get
                 ;;
@@ -57,7 +67,7 @@ main(){
                 setloop
                 ;;
             *)
-                echo "ERROR: unknown action: \"$actARG\""
+                echo "ERROR: unknown action: \"$actionARG\""
                 exit 1
                 ;;
         esac
@@ -78,7 +88,7 @@ get(){
 
     #Get workspace/folname
     echo -e "\n\n************* Geting gpi workspace/$folname ****************\n"
-    rsync -rltgoDv --delete -e 'ssh -p 2225' --progress ${excludes[*]} \
+    rsync -rltgoDv --delete -e 'ssh -p 2225' --progress ${excludes[*]} --max-size ${maxsize}\
     icaminal@calcula.tsc.upc.edu:$remotedir/$folname/ $localdir/$folname/
     echo -e "OK! - workspace/$folname\n"
 
