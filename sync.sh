@@ -66,8 +66,11 @@ main(){
             "get" | "g")
                 get
                 ;;
+            "set" | "s")
+                setloop false
+                ;;
             "setloop" | "sl")
-                setloop
+                setloop true
                 ;;
             *)
                 echo "ERROR: unknown action: \"$actionARG\""
@@ -91,11 +94,11 @@ get(){
         trap "printf ' Exit by USER\n' >> ~/syncs/gpi/$folname.txt; trap - ERR" INT #Log USER exits (and reset ERR)
     fi
 
-    #Get workspace/folname
-    echo -e "\n\n************* Geting gpi workspace/$folname ****************\n"
+    #Get remotedir/folname
+    echo -e "\n\n************* Geting gpi $remotedir/$folname ****************\n"
     rsync -rltgoDv --delete -e 'ssh -p 2225' --progress ${excludes[*]} --max-size ${maxsize}\
     icaminal@calcula.tsc.upc.edu:$remotedir/$folname/ $localdir/$folname/
-    echo -e "OK! - workspace/$folname\n"
+    echo -e "OK!  $remotedir/$folname\n"
 
     #LOG end
     if $logging; then
@@ -123,10 +126,11 @@ setloop(){
             trap "printf ' Exit by USER\n' >> ~/syncs/gpi/$folname.txt; trap - ERR" INT #Log USER exits (and reset ERR)
         fi
         
-        #Set workspace/folname
-        echo -e "\n\n---------------------- Set gpi workspace/$folname ----------------------\n"
+        #Set remotedir/folname
+        echo -e "\n\n---------------------- Set gpi $remotedir/$folname ----------------------\n"
         rsync -rltgoDv --delete -e 'ssh -p 2225' --progress ${excludes[*]} \
         $localdir/$folname/ icaminal@calcula.tsc.upc.edu:$remotedir/$folname/
+        echo -e "OK!  $remotedir/$folname\n"
         
         #LOG end
         if $logging; then
@@ -140,12 +144,17 @@ setloop(){
         
         date +"%T"; echo
         
-        sleep 0.2
-        #Trigger when an event occurs
-        if inotifywait -r -e create,delete,modify,move $localdir/$folname/; then
-            continue
+        #LOOPING
+        if $1; then
+            sleep 0.2
+            #Trigger when an event occurs
+            if inotifywait -r -e create,delete,modify,move $localdir/$folname/; then
+                continue
+            else
+                exit 1
+            fi
         else
-            exit 1
+            exit
         fi
     done
 }
