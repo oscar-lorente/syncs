@@ -16,8 +16,9 @@ blacklist=(
 ".fuse*"
 ".nfs*")
 
-#File size limit
-maxsize="1G"
+
+maxsize="1G" #File size limit
+logging=true
 
 main(){
     if [ "$1" != "" ] && [ "$2" != "" ]; then
@@ -41,6 +42,7 @@ main(){
                 folname="important"
                 localdir="$HOME/research"
                 remotedir="~"
+                logging=false
                 if [[ ! $actionARG =~ g.* ]]; then 
                     echo "ERROR: Folder \"$folname\" can only be get!"; exit -1; fi
                 ;;
@@ -49,6 +51,7 @@ main(){
                 localdir="$HOME/research"
                 remotedir="~"
                 maxsize="1M"
+                logging=false
                 if [[ ! $actionARG =~ g.* ]]; then 
                     echo "ERROR: Folder \"$folname\" can only be get!"; exit -1; fi
                 ;;
@@ -81,10 +84,12 @@ get(){
 
     create_excludes #Create array of excludes from blacklist
 
-    #LOG
-    printf 'GPI ' >> ~/syncs/gpi/$folname.txt
-    trap "printf ' Exit with error\n' >> ~/syncs/gpi/$folname.txt" ERR #Log ERROR exits
-    trap "printf ' Exit by USER\n' >> ~/syncs/gpi/$folname.txt; trap - ERR" INT #Log USER exits (and reset ERR)
+    #LOG start
+    if $logging; then
+        printf 'GPI ' >> ~/syncs/gpi/$folname.txt
+        trap "printf ' Exit with error\n' >> ~/syncs/gpi/$folname.txt" ERR #Log ERROR exits
+        trap "printf ' Exit by USER\n' >> ~/syncs/gpi/$folname.txt; trap - ERR" INT #Log USER exits (and reset ERR)
+    fi
 
     #Get workspace/folname
     echo -e "\n\n************* Geting gpi workspace/$folname ****************\n"
@@ -92,13 +97,15 @@ get(){
     icaminal@calcula.tsc.upc.edu:$remotedir/$folname/ $localdir/$folname/
     echo -e "OK! - workspace/$folname\n"
 
-    #LOG
-    echo '--> '`cat /etc/hostname`'    '`date` >> ~/syncs/gpi/$folname.txt
-    
-    #Upload logs to remote
-    trap - INT ERR #reset signal handling to default
-    rsync -rltgoDq --delete -e 'ssh -p 2225' ~/syncs/gpi/ icaminal@calcula.tsc.upc.edu:~/syncs/
-    if (($? == 0)); then echo -e "syncs uploaded"; fi
+    #LOG end
+    if $logging; then
+        echo '--> '`cat /etc/hostname`'    '`date` >> ~/syncs/gpi/$folname.txt
+        
+        #Upload logs to remote
+        trap - INT ERR #reset signal handling to default
+        rsync -rltgoDq --delete -e 'ssh -p 2225' ~/syncs/gpi/ icaminal@calcula.tsc.upc.edu:~/syncs/
+        if (($? == 0)); then echo -e "syncs uploaded"; fi
+    fi
 
     date +"%T"; echo
 }
@@ -107,36 +114,40 @@ setloop(){
 
     create_excludes #Create array of excludes from blacklist
     
-	while true; do
+    while true; do
         
-		#LOG
-		printf `cat /etc/hostname` >> ~/syncs/gpi/$folname.txt
-		trap "printf ' Exit with error\n' >> ~/syncs/gpi/$folname.txt" ERR #Log ERROR exits
-	    trap "printf ' Exit by USER\n' >> ~/syncs/gpi/$folname.txt; trap - ERR" INT #Log USER exits (and reset ERR)
-		
-		#Set workspace/folname
-		echo -e "\n\n---------------------- Set gpi workspace/$folname ----------------------\n"
-		rsync -rltgoDv --delete -e 'ssh -p 2225' --progress ${excludes[*]} \
-		$localdir/$folname/ icaminal@calcula.tsc.upc.edu:$remotedir/$folname/
-		
-		#LOG
-		echo ' --> GPI    '`date` >> ~/syncs/gpi/$folname.txt
-		
-		#Upload logs to remote
-	    trap - INT ERR #reset signal handling to the default
-	    rsync -rltgoDq --delete -e 'ssh -p 2225' ~/syncs/gpi/ icaminal@calcula.tsc.upc.edu:~/syncs/
-	    if (($? == 0)); then echo -e "syncs uploaded"; fi
-		
-		date +"%T"; echo
-
-		sleep 0.2
+        #LOG start
+        if $logging; then
+            printf `cat /etc/hostname` >> ~/syncs/gpi/$folname.txt
+            trap "printf ' Exit with error\n' >> ~/syncs/gpi/$folname.txt" ERR #Log ERROR exits
+            trap "printf ' Exit by USER\n' >> ~/syncs/gpi/$folname.txt; trap - ERR" INT #Log USER exits (and reset ERR)
+        fi
+        
+        #Set workspace/folname
+        echo -e "\n\n---------------------- Set gpi workspace/$folname ----------------------\n"
+        rsync -rltgoDv --delete -e 'ssh -p 2225' --progress ${excludes[*]} \
+        $localdir/$folname/ icaminal@calcula.tsc.upc.edu:$remotedir/$folname/
+        
+        #LOG end
+        if $logging; then
+            echo ' --> GPI    '`date` >> ~/syncs/gpi/$folname.txt
+            
+            #Upload logs to remote
+            trap - INT ERR #reset signal handling to the default
+            rsync -rltgoDq --delete -e 'ssh -p 2225' ~/syncs/gpi/ icaminal@calcula.tsc.upc.edu:~/syncs/
+            if (($? == 0)); then echo -e "syncs uploaded"; fi
+        fi
+        
+        date +"%T"; echo
+        
+        sleep 0.2
         #Trigger when an event occurs
-		if inotifywait -r -e create,delete,modify,move $localdir/$folname/; then 
-			continue
-		else
-			exit 1
-		fi
-	done
+        if inotifywait -r -e create,delete,modify,move $localdir/$folname/; then
+            continue
+        else
+            exit 1
+        fi
+    done
 }
 
 create_excludes(){
