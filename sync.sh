@@ -40,7 +40,7 @@ main(){
                 ;;
             "imp")
                 folname="important"
-                localdir="$HOME/research"
+                localdir="$HOME/gpi"
                 remotedir="~"
                 logging=false
                 if [[ ! $actionARG =~ g.* ]]; then 
@@ -48,7 +48,7 @@ main(){
                 ;;
             "out")
                 folname="outputs"
-                localdir="$HOME/research"
+                localdir="$HOME/gpi"
                 remotedir="~"
                 maxsize="1M"
                 logging=false
@@ -89,7 +89,7 @@ get(){
 
     #LOG start
     if $logging; then
-        printf 'GPI ' >> ~/syncs/gpi/$folname.txt
+        printf "gpi " >> ~/syncs/gpi/$folname.txt
         trap "printf ' Exit with error\n' >> ~/syncs/gpi/$folname.txt" ERR #Log ERROR exits
         trap "printf ' Exit by USER\n' >> ~/syncs/gpi/$folname.txt; trap - ERR" INT #Log USER exits (and reset ERR)
     fi
@@ -134,7 +134,7 @@ setloop(){
         
         #LOG end
         if $logging; then
-            echo ' --> GPI    '`date` >> ~/syncs/gpi/$folname.txt
+            echo " --> gpi    "`date` >> ~/syncs/gpi/$folname.txt
             
             #Upload logs to remote
             trap - INT ERR #reset signal handling to the default
