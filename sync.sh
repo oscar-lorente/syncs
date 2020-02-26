@@ -1,5 +1,6 @@
 #!/bin/bash
-#WARN: Replicate modifications in excluded dirs (find . | egrep "*excluded*" --color)
+#WHY sync.sh? to do specific/reliable transfers when connection didn't allow for "fluid" X11 edition of remote files
+#WARN: Replicate modifications in excluded dirs (find . | egrep "*$excluded*" --color)
 
 #Exit if error
 set -e
