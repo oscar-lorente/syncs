@@ -29,13 +29,13 @@ main(){
         case $folderARG in
             "phd")
                 folname="phd"
-                localdir="$HOME/github"
+                localdir="$HOME/workspace"
                 remotedir="~/workspace"
                 ;;
             "mth")
                 blacklist+=("world3d-ros/") #custom exclude
                 folname="mth"
-                localdir="$HOME/github"
+                localdir="$HOME/workspace"
                 remotedir="~/workspace"
                 ;;
             "imp")
