@@ -14,6 +14,7 @@ blacklist=(
 "bin/"
 "devel/"
 ".pyc"
+".*.pyc"
 ".fuse*"
 ".nfs*")
 
@@ -29,6 +30,8 @@ main(){
         #Folder
         case $folderARG in
             "phd")
+                blacklist+=("**/corelib/include/rtabmap/core/Version.h") #custom exclude
+                blacklist+=("**/corelib/src/resources/DatabaseSchema.sql") #custom exclude
                 folname="phd"
                 localdir="$HOME/workspace"
                 remotedir="~/workspace"
@@ -63,15 +66,19 @@ main(){
         esac
         
         #Action
+        dryrun=""
+        if [[ $actionARG == *"dry" ]]; then
+            dryrun="--dry-run"
+        fi
         case $actionARG in
-            "get" | "g")
+            "g"* )
                 get
                 ;;
-            "set" | "s")
-                setloop false
-                ;;
-            "setloop" | "sl")
+            "setloop"* | "sl"* )
                 setloop true
+                ;;
+            "s"* )
+                setloop false
                 ;;
             *)
                 echo "ERROR: unknown action: \"$actionARG\""
@@ -97,7 +104,7 @@ get(){
 
     #Get remotedir/folname
     echo -e "\n\n************* Geting gpi $remotedir/$folname ****************\n"
-    rsync -rltgoDv --delete -e 'ssh -p 2225' --progress ${excludes[*]} --max-size ${maxsize}\
+    rsync -rltgoDv $dryrun --delete -e 'ssh -p 2225' --progress ${excludes[*]} --max-size ${maxsize}\
     icaminal@calcula.tsc.upc.edu:$remotedir/$folname/ $localdir/$folname/
     echo -e "OK!  $remotedir/$folname\n"
 
@@ -107,7 +114,7 @@ get(){
         
         #Upload logs to remote
         trap - INT ERR #reset signal handling to default
-        rsync -rltgoDq --delete -e 'ssh -p 2225' ~/syncs/gpi/ icaminal@calcula.tsc.upc.edu:~/syncs/
+        rsync -rltgoDq $dryrun --delete -e 'ssh -p 2225' ~/syncs/gpi/ icaminal@calcula.tsc.upc.edu:~/syncs/
         if (($? == 0)); then echo -e "syncs uploaded"; fi
     fi
 
@@ -129,7 +136,7 @@ setloop(){
         
         #Set remotedir/folname
         echo -e "\n\n---------------------- Set gpi $remotedir/$folname ----------------------\n"
-        rsync -rltgoDv --delete -e 'ssh -p 2225' --progress ${excludes[*]} \
+        rsync -rltgoDv $dryrun --delete -e 'ssh -p 2225' --progress ${excludes[*]} \
         $localdir/$folname/ icaminal@calcula.tsc.upc.edu:$remotedir/$folname/
         echo -e "OK!  $remotedir/$folname\n"
         
@@ -139,7 +146,7 @@ setloop(){
             
             #Upload logs to remote
             trap - INT ERR #reset signal handling to the default
-            rsync -rltgoDq --delete -e 'ssh -p 2225' ~/syncs/gpi/ icaminal@calcula.tsc.upc.edu:~/syncs/
+            rsync -rltgoDq $dryrun --delete -e 'ssh -p 2225' ~/syncs/gpi/ icaminal@calcula.tsc.upc.edu:~/syncs/
             if (($? == 0)); then echo -e "syncs uploaded"; fi
         fi
         
