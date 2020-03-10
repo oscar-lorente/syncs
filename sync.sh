@@ -21,50 +21,48 @@ blacklist=(
 
 maxsize="1G" #File size limit
 logging=true
+logdirs="$HOME/syncs/gpi:~/syncs" #(LOCAL:REMOTE)
 
 main(){
     if [ "$1" != "" ] && [ "$2" != "" ]; then
         actionARG=`echo $1 | awk -F= '{print tolower($1)}'`
-        folderARG=`echo $2 | awk -F= '{print tolower($1)}'`
-        
-        #Folder
-        case $folderARG in
+        projectARG=`echo $2 | awk -F= '{print tolower($1)}'`
+
+        #Project
+        case $projectARG in
             "phd")
                 blacklist+=("**/corelib/include/rtabmap/core/Version.h") #custom exclude
                 blacklist+=("**/corelib/src/resources/DatabaseSchema.sql") #custom exclude
-                folname="phd"
-                localdir="$HOME/workspace"
-                remotedir="~/workspace"
+                paths="$HOME/workspace/phd:~/workspace/phd" #paths to sync (LOCAL:REMOTE)
                 ;;
             "mth")
-                blacklist+=("world3d-ros/") #custom exclude
-                folname="mth"
-                localdir="$HOME/workspace"
-                remotedir="~/workspace"
+                blacklist+=("world3d-ros/")
+                paths="$HOME/workspace/mth:~/workspace/mth"
+                ;;
+            "do")
+                paths="$HOME/workspace/doitforme:~/workspace/doitforme"
                 ;;
             "imp")
-                folname="important"
-                localdir="$HOME/gpi"
-                remotedir="~"
+                paths="$HOME/gpi/important:~/important"
                 logging=false
-                if [[ ! $actionARG =~ g.* ]]; then 
-                    echo "ERROR: Folder \"$folname\" can only be get!"; exit -1; fi
+                if [[ ! $actionARG =~ g.* ]]; then
+                    echo "ERROR: \"${paths%%:*}\" can only be get!"; exit -1; fi
                 ;;
             "out")
-                folname="outputs"
-                localdir="$HOME/gpi"
-                remotedir="~"
+                paths="$HOME/gpi/outputs:~/outputs"
                 maxsize="1M"
                 logging=false
-                if [[ ! $actionARG =~ g.* ]]; then 
-                    echo "ERROR: Folder \"$folname\" can only be get!"; exit -1; fi
+                if [[ ! $actionARG =~ g.* ]]; then
+                    echo "ERROR: \"${paths%%:*}\" can only be get!"; exit -1; fi
                 ;;
             *)
-                echo "ERROR: unknown folder name: \"$folderARG\""
+                echo "ERROR: unknown project name: \"$projectARG\""
                 exit 1
                 ;;
         esac
-        
+
+        if [[ ! -d "${logdirs%%:*}" ]]; then mkdir -p "${logdirs%%:*}"; fi
+
         #Action
         dryrun=""
         if [[ $actionARG == *"dry" ]]; then
@@ -85,9 +83,9 @@ main(){
                 exit 1
                 ;;
         esac
-        
+
     else
-        echo "Usage: $0 action folder"
+        echo "Usage: $0 action project"
     fi
 }
 
@@ -97,24 +95,24 @@ get(){
 
     #LOG start
     if $logging; then
-        printf "gpi " >> ~/syncs/gpi/$folname.txt
-        trap "printf ' Exit with error\n' >> ~/syncs/gpi/$folname.txt" ERR #Log ERROR exits
-        trap "printf ' Exit by USER\n' >> ~/syncs/gpi/$folname.txt; trap - ERR" INT #Log USER exits (and reset ERR)
+        printf "gpi " >> ${logdirs%%:*}/$projectARG.txt
+        trap "printf ' Exit with error\n' >> ${logdirs%%:*}/$projectARG.txt" ERR #Log ERROR exits
+        trap "printf ' Exit by USER\n' >> ${logdirs%%:*}/$projectARG.txt; trap - ERR" INT #Log USER exits (and reset ERR)
     fi
 
     #Get remotedir/folname
-    echo -e "\n\n************* Geting gpi $remotedir/$folname ****************\n"
+    echo -e "\n\n************* Geting gpi ${paths##*:} ****************\n"
     rsync -rltgoDv $dryrun --delete -e 'ssh -p 2225' --progress ${excludes[*]} --max-size ${maxsize}\
-    icaminal@calcula.tsc.upc.edu:$remotedir/$folname/ $localdir/$folname/
-    echo -e "OK!  $remotedir/$folname\n"
+    icaminal@calcula.tsc.upc.edu:${paths##*:}/ ${paths%%:*}/
+    echo -e "OK!  ${paths##*:}\n"
 
     #LOG end
     if $logging; then
-        echo '--> '`cat /etc/hostname`'    '`date` >> ~/syncs/gpi/$folname.txt
-        
+        echo '--> '`cat /etc/hostname`'    '`date` >> ${logdirs%%:*}/$projectARG.txt
+
         #Upload logs to remote
         trap - INT ERR #reset signal handling to default
-        rsync -rltgoDq $dryrun --delete -e 'ssh -p 2225' ~/syncs/gpi/ icaminal@calcula.tsc.upc.edu:~/syncs/
+        rsync -rltgoDq $dryrun --delete -e 'ssh -p 2225' ${logdirs%%:*}/ icaminal@calcula.tsc.upc.edu:${logdirs##*:}
         if (($? == 0)); then echo -e "syncs uploaded"; fi
     fi
 
@@ -124,39 +122,39 @@ get(){
 setloop(){
 
     create_excludes #Create array of excludes from blacklist
-    
+
     while true; do
-        
+
         #LOG start
         if $logging; then
-            printf `cat /etc/hostname` >> ~/syncs/gpi/$folname.txt
-            trap "printf ' Exit with error\n' >> ~/syncs/gpi/$folname.txt" ERR #Log ERROR exits
-            trap "printf ' Exit by USER\n' >> ~/syncs/gpi/$folname.txt; trap - ERR" INT #Log USER exits (and reset ERR)
+            printf `cat /etc/hostname` >> ${logdirs%%:*}/$projectARG.txt
+            trap "printf ' Exit with error\n' >> ${logdirs%%:*}/$projectARG.txt" ERR #Log ERROR exits
+            trap "printf ' Exit by USER\n' >> ${logdirs%%:*}/$projectARG.txt; trap - ERR" INT #Log USER exits (and reset ERR)
         fi
-        
+
         #Set remotedir/folname
-        echo -e "\n\n---------------------- Set gpi $remotedir/$folname ----------------------\n"
+        echo -e "\n\n---------------------- Set gpi ${paths##*:} ----------------------\n"
         rsync -rltgoDv $dryrun --delete -e 'ssh -p 2225' --progress ${excludes[*]} \
-        $localdir/$folname/ icaminal@calcula.tsc.upc.edu:$remotedir/$folname/
-        echo -e "OK!  $remotedir/$folname\n"
-        
+        ${paths%%:*}/ icaminal@calcula.tsc.upc.edu:${paths##*:}/
+        echo -e "OK!  ${paths##*:}\n"
+
         #LOG end
         if $logging; then
-            echo " --> gpi    "`date` >> ~/syncs/gpi/$folname.txt
-            
+            echo " --> gpi    "`date` >> ${logdirs%%:*}/$projectARG.txt
+
             #Upload logs to remote
             trap - INT ERR #reset signal handling to the default
-            rsync -rltgoDq $dryrun --delete -e 'ssh -p 2225' ~/syncs/gpi/ icaminal@calcula.tsc.upc.edu:~/syncs/
+            rsync -rltgoDq $dryrun --delete -e 'ssh -p 2225' ${logdirs%%:*}/ icaminal@calcula.tsc.upc.edu:${logdirs##*:}
             if (($? == 0)); then echo -e "syncs uploaded"; fi
         fi
-        
+
         date +"%T"; echo
-        
+
         #LOOPING
         if $1; then
             sleep 0.2
             #Trigger when an event occurs
-            if inotifywait -r -e create,delete,modify,move $localdir/$folname/; then
+            if inotifywait -r -e create,delete,modify,move ${paths%%:*}/; then
                 continue
             else
                 exit 1
