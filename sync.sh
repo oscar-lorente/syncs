@@ -30,31 +30,23 @@ main(){
 
         #Project
         case $projectARG in
-            "phd")
-                blacklist+=("**/corelib/include/rtabmap/core/Version.h") #custom exclude
-                blacklist+=("**/corelib/src/resources/DatabaseSchema.sql") #custom exclude
-                paths="$HOME/workspace/phd:~/workspace/phd" #paths to sync (LOCAL:REMOTE)
-                ;;
-            "mth")
-                blacklist+=("world3d-ros/")
-                paths="$HOME/workspace/mth:~/workspace/mth"
-                ;;
-            "do")
-                paths="$HOME/workspace/doitforme:~/workspace/doitforme"
-                ;;
-            "imp")
-                paths="$HOME/gpi/important:~/important"
-                logging=false
-                if [[ ! $actionARG =~ g.* ]]; then
-                    echo "ERROR: \"${paths%%:*}\" can only be get!"; exit -1; fi
-                ;;
-            "out")
-                paths="$HOME/gpi/outputs:~/outputs"
-                maxsize="1M"
-                logging=false
-                if [[ ! $actionARG =~ g.* ]]; then
-                    echo "ERROR: \"${paths%%:*}\" can only be get!"; exit -1; fi
-                ;;
+          "tfg")
+          # blacklist+=("**/corelib/include/rtabmap/core/Version.h") #custom exclude
+          paths="$HOME/workspace/tfg:~/workspace/tfg" #paths to sync (LOCAL:REMOTE)
+            #   ;;
+            # "imp")
+            #     paths="$HOME/gpi/important:~/important"
+            #     logging=false
+            #     if [[ ! $actionARG =~ g.* ]]; then
+            #         echo "ERROR: \"${paths%%:*}\" can only be get!"; exit -1; fi
+            #     ;;
+            # "out")
+            #     paths="$HOME/gpi/outputs:~/outputs"
+            #     maxsize="1M"
+            #     logging=false
+            #     if [[ ! $actionARG =~ g.* ]]; then
+            #         echo "ERROR: \"${paths%%:*}\" can only be get!"; exit -1; fi
+            #     ;;
             *)
                 echo "ERROR: unknown project name: \"$projectARG\""
                 exit 1
@@ -103,7 +95,7 @@ get(){
     #Get remotedir/folname
     echo -e "\n\n************* Geting gpi ${paths##*:} ****************\n"
     rsync -rltgoDv $dryrun --delete -e 'ssh -p 2225' --progress ${excludes[*]} --max-size ${maxsize}\
-    icaminal@calcula.tsc.upc.edu:${paths##*:}/ ${paths%%:*}/
+    oscar.lorente@calcula.tsc.upc.edu:${paths##*:}/ ${paths%%:*}/
     echo -e "OK!  ${paths##*:}\n"
 
     #LOG end
@@ -112,7 +104,7 @@ get(){
 
         #Upload logs to remote
         trap - INT ERR #reset signal handling to default
-        rsync -rltgoDq $dryrun --delete -e 'ssh -p 2225' ${logdirs%%:*}/ icaminal@calcula.tsc.upc.edu:${logdirs##*:}
+        rsync -rltgoDq $dryrun --delete -e 'ssh -p 2225' ${logdirs%%:*}/ oscar.lorente@calcula.tsc.upc.edu:${logdirs##*:}
         if (($? == 0)); then echo -e "syncs uploaded"; fi
     fi
 
@@ -135,7 +127,7 @@ setloop(){
         #Set remotedir/folname
         echo -e "\n\n---------------------- Set gpi ${paths##*:} ----------------------\n"
         rsync -rltgoDv $dryrun --delete -e 'ssh -p 2225' --progress ${excludes[*]} \
-        ${paths%%:*}/ icaminal@calcula.tsc.upc.edu:${paths##*:}/
+        ${paths%%:*}/ oscar.lorente@calcula.tsc.upc.edu:${paths##*:}/
         echo -e "OK!  ${paths##*:}\n"
 
         #LOG end
@@ -144,7 +136,7 @@ setloop(){
 
             #Upload logs to remote
             trap - INT ERR #reset signal handling to the default
-            rsync -rltgoDq $dryrun --delete -e 'ssh -p 2225' ${logdirs%%:*}/ icaminal@calcula.tsc.upc.edu:${logdirs##*:}
+            rsync -rltgoDq $dryrun --delete -e 'ssh -p 2225' ${logdirs%%:*}/ oscar.lorente@calcula.tsc.upc.edu:${logdirs##*:}
             if (($? == 0)); then echo -e "syncs uploaded"; fi
         fi
 
